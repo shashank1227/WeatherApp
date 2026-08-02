@@ -1,0 +1,23 @@
+{
+  "name": "weatherapp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "next": "^15.5.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
+    "@types/node": "20.17.6",
+    "@types/react": "19.2.18",
+    "eslint": "^9.34.0",
+    "eslint-config-next": "^15.5.2"
+  }
+}
