@@ -14,18 +14,8 @@ import SearchBar from '@/components/SearchBar';
 import ThemeToggle from '@/components/ThemeToggle';
 import WeatherIcon from '@/components/WeatherIcon';
 
-const DEFAULT_LOCATION = {
-  id: 'default',
-  name: 'London',
-  country: 'United Kingdom',
-  admin1: 'England',
-  latitude: 51.5074,
-  longitude: -0.1278,
-  timezone: 'Europe/London',
-};
-
 export default function WeatherApp() {
-  const [location, setLocation] = useState(DEFAULT_LOCATION);
+  const [location, setLocation] = useState(null);
   const [weather, setWeather] = useState(null);
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState('');
@@ -60,17 +50,15 @@ export default function WeatherApp() {
     }
   }, []);
 
-  useEffect(() => {
-    loadWeather(DEFAULT_LOCATION);
-  }, [loadWeather]);
-
-  function useCurrentLocation() {
+  const requestCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setError('Geolocation is not supported in this browser');
+      setError('Geolocation is not supported in this browser. Search for a city instead.');
+      setStatus('error');
       return;
     }
 
     setLocating(true);
+    setStatus('loading');
     setError('');
 
     navigator.geolocation.getCurrentPosition(
@@ -86,18 +74,27 @@ export default function WeatherApp() {
           setLocating(false);
         }
       },
-      () => {
-        setError('Location permission denied');
+      (geoError) => {
+        setError(
+          geoError?.code === 1
+            ? 'Location permission denied. Allow location access or search for a city.'
+            : 'Could not determine your location. Search for a city instead.'
+        );
+        setStatus('error');
         setLocating(false);
       },
       { enableHighAccuracy: false, timeout: 10000 }
     );
-  }
+  }, [loadWeather]);
+
+  useEffect(() => {
+    requestCurrentLocation();
+  }, [requestCurrentLocation]);
 
   const current = weather?.current;
   const daily = weather?.daily;
   const hourly = weather?.hourly;
-  const timezone = weather?.timezone || location.timezone;
+  const timezone = weather?.timezone || location?.timezone;
   const sunrise = daily?.sunrise?.[0];
   const sunset = daily?.sunset?.[0];
   const period = current
@@ -136,7 +133,7 @@ export default function WeatherApp() {
       precip: daily.precipitation_probability_max[i],
     })) || [];
 
-  const placeLine = [location.admin1, location.country]
+  const placeLine = [location?.admin1, location?.country]
     .filter(Boolean)
     .join(', ');
 
@@ -155,25 +152,27 @@ export default function WeatherApp() {
           </div>
           <SearchBar
             onSelect={loadWeather}
-            onUseLocation={useCurrentLocation}
+            onUseLocation={requestCurrentLocation}
             locating={locating}
           />
         </header>
 
         {status === 'loading' && !weather && (
-          <div className="state">Loading weather…</div>
+          <div className="state">
+            {locating ? 'Detecting your location…' : 'Loading weather…'}
+          </div>
         )}
 
         {status === 'error' && !weather && (
           <div className="state state--error">
             <p>{error || 'Unable to load weather'}</p>
-            <button type="button" onClick={() => loadWeather(location)}>
+            <button type="button" onClick={requestCurrentLocation}>
               Try again
             </button>
           </div>
         )}
 
-        {weather && current && (
+        {weather && current && location && (
           <main className="main">
             <section className="hero" aria-live="polite">
               <div className="hero__place">
